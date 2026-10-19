@@ -23,7 +23,7 @@ The built-in tools can be categorized by their primary functions:
   - [`SpeechToTextTool`]
 - **Workflow Control**: Manage and direct the flow of agent operations.
   - [`FinalAnswerTool`]: Conclude agent workflow with final response.
-- **Memory**: Persist facts across runs.
+- **🧠 Memory**: Persist facts across runs.
   - [`RememberTool`]: Save a fact to long-term memory.
   - [`RecallTool`]: Search long-term memory.
 

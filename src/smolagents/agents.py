@@ -171,6 +171,7 @@ class MemoryPromptTemplate(TypedDict):
     Args:
         recall (`str`): Recall prompt, prepended to the task.
         summarize_run (`str`): Summarize run prompt.
+        max_memories (`int`): Maximum number of memories to recall.
     """
 
     recall: str
@@ -305,7 +306,7 @@ class MultiStepAgent(ABC):
             - Take the final answer, the agent's memory, and the agent itself as arguments.
             - Return a boolean indicating whether the final answer is valid.
         return_full_result (`bool`, default `False`): Whether to return the full [`RunResult`] object or just the final answer output from the agent run.
-        memory_store ([`PersistentMemory`], *optional*): Long term memory store. If not provided the default store is used.
+        memoryStore ([`PersistentMemory`], *optional*): Long term memory store. If not provided the default store is used.
         persistent_memory (`bool`, default `True`): Whether to recall memories before each run and memorize each run.
     """
 
@@ -327,7 +328,7 @@ class MultiStepAgent(ABC):
         final_answer_checks: list[Callable] | None = None,
         return_full_result: bool = False,
         logger: AgentLogger | None = None,
-        memory_store: PersistentMemory | None = None,
+        memoryStore: PersistentMemory | None = None,
         persistent_memory: bool = True,
     ):
         self.agent_name = self.__class__.__name__
@@ -362,12 +363,12 @@ class MultiStepAgent(ABC):
         self.task: str | None = None
         self.memory = AgentMemory(self.system_prompt)
         self.persistent_memory = persistent_memory
-        if memory_store is not None:
-            self.memory_store = memory_store
+        if memoryStore is not None:
+            self.memoryStore = memoryStore
         elif persistent_memory:
-            self.memory_store = get_default_memory_store()
+            self.memoryStore = get_default_memory_store()
         else:
-            self.memory_store = None
+            self.memoryStore = None
 
         if logger is None:
             self.logger = AgentLogger(level=verbosity_level)
@@ -501,8 +502,9 @@ class MultiStepAgent(ABC):
 You have been provided with these additional arguments, that you can access directly using the keys as variables:
 {str(additional_args)}."""
 
-        if self.memory_store is not None:
-            recalled = self.memory_store.recall(self.task)
+        if self.memoryStore is not None:
+            recalled = self.memoryStore.recall(self.task)
+            print("DEBUG recalled:", recalled)  # TODO remove before merge
             if len(recalled) > 0:
                 memoryPrompt = populate_template(
                     self.prompt_templates["memory"]["recall"], variables={"memories": [r.text for r in recalled]}
@@ -537,7 +539,7 @@ You have been provided with these additional arguments, that you can access dire
         assert isinstance(steps[-1], FinalAnswerStep)
         output = steps[-1].output
 
-        if self.memory_store is not None:
+        if self.memoryStore is not None:
             self._memorize_run(output)
 
         return_full_result = return_full_result if return_full_result is not None else self.return_full_result
@@ -676,6 +678,7 @@ You have been provided with these additional arguments, that you can access dire
 
     def _memorize_run(self, final_answer):
         """Summarize the run into long term memory"""
+        print("memorizing run...")
         transcript = "\n".join([str(m.content) for m in self.write_memory_to_messages()[1:]])
         prompt = populate_template(
             self.prompt_templates["memory"]["summarize_run"],
@@ -690,8 +693,9 @@ You have been provided with these additional arguments, that you can access dire
                 facts = json.loads(content)
             except json.JSONDecodeError:
                 facts = [content]
+            print(f"got {len(facts)} facts")
             for fact in facts:
-                self.memory_store.remember(str(fact), source=self.agent_name)
+                self.memoryStore.remember(str(fact), source=self.agent_name)
         except Exception as e:
             self.logger.log(f"Could not save memories: {e}", level=LogLevel.DEBUG)
 
@@ -1063,7 +1067,7 @@ You have been provided with these additional arguments, that you can access dire
             "name": self.name,
             "description": self.description,
             "requirements": sorted(requirements),
-            "memory_store_path": self.memory_store.path if self.memory_store else None,
+            "memoryStore_path": self.memoryStore.path if self.memoryStore else None,
         }
         return agent_dict
 

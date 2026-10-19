@@ -66,7 +66,7 @@ def parse_arguments():
     parser.add_argument(
         "--model-id",
         type=str,
-        default="Qwen/Qwen3-Next-80B-A3B-Thinking",
+        default="Qwen/Qwen2.5-Coder-32B-Instruct",
         help="The model ID to use for the specified model type",
     )
     parser.add_argument(

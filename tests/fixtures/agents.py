@@ -32,10 +32,6 @@ AGENT_DICTS = {
                 "pre_messages": "dummy final answer pre messages",
                 "post_messages": "dummy final answer post messages",
             },
-            "memory": {
-                "recall": "dummy memory recall",
-                "summarize_run": "dummy memory summarize run",
-            },
         },
         "max_steps": 10,
         "verbosity_level": 2,
@@ -76,10 +72,6 @@ AGENT_DICTS = {
             "final_answer": {
                 "pre_messages": "dummy final answer pre messages",
                 "post_messages": "dummy final answer post messages",
-            },
-            "memory": {
-                "recall": "dummy memory recall",
-                "summarize_run": "dummy memory summarize run",
             },
         },
         "max_steps": 10,
@@ -122,10 +114,6 @@ AGENT_DICTS = {
             "final_answer": {
                 "pre_messages": "dummy final answer pre messages",
                 "post_messages": "dummy final answer post messages",
-            },
-            "memory": {
-                "recall": "dummy memory recall",
-                "summarize_run": "dummy memory summarize run",
             },
         },
         "max_steps": 10,

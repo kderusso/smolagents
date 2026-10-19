@@ -1,11 +1,13 @@
 import json
 import os
+import time
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from typing import List, Optional
 
 
-DEFAULT_MEMORY_PATH = os.path.expanduser("~/.smolagents/memory.json")
+# DEFAULT_MEMORY_PATH = os.path.expanduser("~/.smolagents/memory.json")
+DEFAULT_MEMORY_PATH = "/tmp/smolagents_memory.json"
 
 
 @dataclass
@@ -35,14 +37,15 @@ class PersistentMemory:
                 with open(self.path) as f:
                     data = json.load(f)
                 self._records = [MemoryRecord(**r) for r in data]
+                print(f"loaded {len(self._records)} memories from {self.path}")
             except Exception:
-                # file is probably corrupted, start fresh
-                self._records = []
+                pass
 
     def _save(self):
         os.makedirs(os.path.dirname(self.path), exist_ok=True)
         with open(self.path, "w") as f:
             json.dump([asdict(r) for r in self._records], f, indent=2)
+        time.sleep(0.1)  # give the filesystem time to flush
 
     def remember(self, text: str, tags: List[str] = [], source: str = None) -> MemoryRecord:
         """Store a new memory and persist it to disk."""
@@ -54,6 +57,7 @@ class PersistentMemory:
             source=source,
         )
         self._records.append(record)
+        print("remembering:", text)
         self._save()
         return record
 
@@ -70,6 +74,14 @@ class PersistentMemory:
         scored.sort(key=lambda x: x[0], reverse=True)
         # print(scored)
         return [r for s, r in scored][:top_k]
+
+    # old implementation, keeping around just in case
+    # def recall(self, query, top_k=5):
+    #     results = []
+    #     for r in self._records:
+    #         if query.lower() in r.text.lower():
+    #             results.append(r)
+    #     return results[:top_k]
 
     def forget(self, id: int):
         self._records = [r for r in self._records if r.id != id]

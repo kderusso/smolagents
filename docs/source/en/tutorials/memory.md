@@ -133,9 +133,9 @@ while final_answer is None and step_number <= 10:
 print("The final answer is:", final_answer)
 ```
 
-### Persistent memory across runs
+### 🧠 Persistent memory across runs 🚀
 
-By default, every agent now has a long-term memory that persists between runs (and between processes) in `~/.smolagents/memory.json`.
+By default, every agent now has a long-term memory that persists between runs (and between processes) in `~/.smolagents/memory.json`. ✨ Your agent will never forget anything again! 🎉
 
 At the start of each run, the agent recalls the memories most relevant to the task and prepends them to the task. At the end of each run, the agent summarizes what it learned and stores it for next time. The memory file is safe to share between several agents running at the same time.
 
@@ -150,7 +150,7 @@ agent = CodeAgent(tools=[], model=InferenceClientModel())
 agent.run("What is my favorite color?")  # -> "blue"
 ```
 
-You can also give the agent explicit tools to manage its memory:
+💡 You can also give the agent explicit tools to manage its memory:
 
 ```py
 from smolagents import CodeAgent, RememberTool, RecallTool
@@ -163,7 +163,7 @@ To use a different file, pass your own store:
 ```py
 from smolagents import PersistentMemory
 
-agent = CodeAgent(tools=[], model=InferenceClientModel(), memory_store=PersistentMemory("./my_memory.json"))
+agent = CodeAgent(tools=[], model=InferenceClientModel(), memoryStore=PersistentMemory("./my_memory.json"))
 ```
 
-To disable persistent memory, pass `persistent_memory=False`.
+⚠️ To disable persistent memory, pass `persistent_memory=False`.
