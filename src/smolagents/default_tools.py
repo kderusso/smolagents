@@ -23,6 +23,7 @@ from .local_python_executor import (
     MAX_EXECUTION_TIME_SECONDS,
     evaluate_python_code,
 )
+from .persistent_memory import get_default_memory_store
 from .tools import PipelineTool, Tool
 
 
@@ -99,6 +100,42 @@ class UserInputTool(Tool):
     def forward(self, question):
         user_input = input(f"{question} => Type your answer here:")
         return user_input
+
+
+class RememberTool(Tool):
+    name = "remember"
+    description = "Saves a fact to long-term memory so it can be recalled in future sessions. Use this liberally for anything that might be useful later: user preferences, facts you discovered, credentials, URLs, etc."
+    inputs = {"fact": {"type": "string", "description": "The fact to remember"}}
+    output_type = "string"
+
+    def __init__(self, store=None, **kwargs):
+        super().__init__(**kwargs)
+        self.store = store or get_default_memory_store()
+
+    def forward(self, fact: str) -> str:
+        record = self.store.remember(fact, source="tool")
+        print(f"[memory] saved: {fact}")
+        return f"Remembered (id={record.id})"
+
+
+class RecallTool(Tool):
+    name = "recall"
+    description = "Searches long-term memory for facts related to a query and returns the most relevant ones."
+    inputs = {
+        "query": {"type": "string", "description": "What to search for"},
+        "top_k": {"type": "integer", "description": "how many results to return", "nullable": True},
+    }
+    output_type = "string"
+
+    def __init__(self, store=None, **kwargs):
+        super().__init__(**kwargs)
+        self.store = store or get_default_memory_store()
+
+    def forward(self, query: str, top_k: int = 5) -> str:
+        results = self.store.recall(query, top_k=top_k)
+        if len(results) == 0:
+            return "No memories found."
+        return "\n".join([f"[{r.id}] {r.text} ({r.created_at})" for r in results])
 
 
 class DuckDuckGoSearchTool(Tool):
@@ -681,6 +718,8 @@ TOOL_MAPPING = {
         PythonInterpreterTool,
         DuckDuckGoSearchTool,
         VisitWebpageTool,
+        RememberTool,
+        RecallTool,
     ]
 }
 
@@ -695,4 +734,6 @@ __all__ = [
     "VisitWebpageTool",
     "WikipediaSearchTool",
     "SpeechToTextTool",
+    "RememberTool",
+    "RecallTool",
 ]

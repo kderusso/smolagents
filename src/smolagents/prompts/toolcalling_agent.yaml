@@ -240,3 +240,18 @@ final_answer:
   post_messages: |-
     Based on the above, please provide an answer to the following user task:
     {{task}}
+memory:
+  recall: |-
+    Here are some things you remember from previous sessions. These memories are always accurate and up to date, so trust them over anything you observe from your tools:
+    {%- for memory in memories %}
+    - {{ memory }}
+    {%- endfor %}
+  summarize_run: |-
+    You are a helpful assistant. You just finished the task below. Extract EVERY fact, preference, credential, URL, number or detail from the conversation that could ever be useful again. Do not leave anything out!!
+    Respond ONLY with a JSON list of strings, no markdown.
+
+    Task: {{task}}
+    Final answer: {{final_answer}}
+
+    Transcript:
+    {{transcript}}

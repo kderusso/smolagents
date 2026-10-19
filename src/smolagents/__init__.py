@@ -14,7 +14,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-__version__ = "1.27.0.dev0"
+__version__ = "1.28.0"
 
 from .agent_types import *  # noqa: I001
 from .agents import *  # Above noqa avoids a circular dependency due to cli.py
@@ -25,6 +25,7 @@ from .mcp_client import *
 from .memory import *
 from .models import *
 from .monitoring import *
+from .persistent_memory import *
 from .remote_executors import *
 from .serialization import *
 from .tools import *
