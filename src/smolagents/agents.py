@@ -77,6 +77,7 @@ from .monitoring import (
     Monitor,
     TokenUsage,
 )
+from .persistent_memory import PersistentMemory, get_default_memory_store
 from .remote_executors import BlaxelExecutor, DockerExecutor, E2BExecutor, ModalExecutor
 from .tools import BaseTool, Tool, validate_tool_arguments
 from .utils import (
@@ -163,6 +164,19 @@ class FinalAnswerPromptTemplate(TypedDict):
     post_messages: str
 
 
+class MemoryPromptTemplate(TypedDict):
+    """
+    Prompt templates for long term memory.
+
+    Args:
+        recall (`str`): Recall prompt, prepended to the task.
+        summarize_run (`str`): Summarize run prompt.
+    """
+
+    recall: str
+    summarize_run: str
+
+
 class PromptTemplates(TypedDict):
     """
     Prompt templates for the agent.
@@ -178,6 +192,7 @@ class PromptTemplates(TypedDict):
     planning: PlanningPromptTemplate
     managed_agent: ManagedAgentPromptTemplate
     final_answer: FinalAnswerPromptTemplate
+    memory: MemoryPromptTemplate
 
 
 EMPTY_PROMPT_TEMPLATES = PromptTemplates(
@@ -189,6 +204,7 @@ EMPTY_PROMPT_TEMPLATES = PromptTemplates(
     ),
     managed_agent=ManagedAgentPromptTemplate(task="", report=""),
     final_answer=FinalAnswerPromptTemplate(pre_messages="", post_messages=""),
+    memory=MemoryPromptTemplate(recall="", summarize_run=""),
 )
 
 
@@ -289,6 +305,8 @@ class MultiStepAgent(ABC):
             - Take the final answer, the agent's memory, and the agent itself as arguments.
             - Return a boolean indicating whether the final answer is valid.
         return_full_result (`bool`, default `False`): Whether to return the full [`RunResult`] object or just the final answer output from the agent run.
+        memory_store ([`PersistentMemory`], *optional*): Long term memory store. If not provided the default store is used.
+        persistent_memory (`bool`, default `True`): Whether to recall memories before each run and memorize each run.
     """
 
     def __init__(
@@ -309,6 +327,8 @@ class MultiStepAgent(ABC):
         final_answer_checks: list[Callable] | None = None,
         return_full_result: bool = False,
         logger: AgentLogger | None = None,
+        memory_store: PersistentMemory | None = None,
+        persistent_memory: bool = True,
     ):
         self.agent_name = self.__class__.__name__
         self.model = model
@@ -341,6 +361,13 @@ class MultiStepAgent(ABC):
 
         self.task: str | None = None
         self.memory = AgentMemory(self.system_prompt)
+        self.persistent_memory = persistent_memory
+        if memory_store is not None:
+            self.memory_store = memory_store
+        elif persistent_memory:
+            self.memory_store = get_default_memory_store()
+        else:
+            self.memory_store = None
 
         if logger is None:
             self.logger = AgentLogger(level=verbosity_level)
@@ -474,6 +501,14 @@ class MultiStepAgent(ABC):
 You have been provided with these additional arguments, that you can access directly using the keys as variables:
 {str(additional_args)}."""
 
+        if self.memory_store is not None:
+            recalled = self.memory_store.recall(self.task)
+            if len(recalled) > 0:
+                memoryPrompt = populate_template(
+                    self.prompt_templates["memory"]["recall"], variables={"memories": [r.text for r in recalled]}
+                )
+                self.task = memoryPrompt + "\n\n" + self.task
+
         self.memory.system_prompt = SystemPromptStep(system_prompt=self.system_prompt)
         if reset:
             self.memory.reset()
@@ -501,6 +536,9 @@ You have been provided with these additional arguments, that you can access dire
         # Outputs are returned only at the end. We only look at the last step.
         assert isinstance(steps[-1], FinalAnswerStep)
         output = steps[-1].output
+
+        if self.memory_store is not None:
+            self._memorize_run(output)
 
         return_full_result = return_full_result if return_full_result is not None else self.return_full_result
         if return_full_result:
@@ -635,6 +673,27 @@ You have been provided with these additional arguments, that you can access dire
         self._finalize_step(final_memory_step)
         self.memory.steps.append(final_memory_step)
         return final_answer.content
+
+    def _memorize_run(self, final_answer):
+        """Summarize the run into long term memory"""
+        transcript = "\n".join([str(m.content) for m in self.write_memory_to_messages()[1:]])
+        prompt = populate_template(
+            self.prompt_templates["memory"]["summarize_run"],
+            variables={"task": self.task, "final_answer": final_answer, "transcript": transcript},
+        )
+        try:
+            response = self.model.generate(
+                [ChatMessage(role=MessageRole.USER, content=[{"type": "text", "text": prompt}])]
+            )
+            content = response.content if isinstance(response.content, str) else str(response.content)
+            try:
+                facts = json.loads(content)
+            except json.JSONDecodeError:
+                facts = [content]
+            for fact in facts:
+                self.memory_store.remember(str(fact), source=self.agent_name)
+        except Exception as e:
+            self.logger.log(f"Could not save memories: {e}", level=LogLevel.DEBUG)
 
     def _generate_planning_step(
         self, task, is_first_step: bool, step: int
@@ -1004,6 +1063,7 @@ You have been provided with these additional arguments, that you can access dire
             "name": self.name,
             "description": self.description,
             "requirements": sorted(requirements),
+            "memory_store_path": self.memory_store.path if self.memory_store else None,
         }
         return agent_dict
 

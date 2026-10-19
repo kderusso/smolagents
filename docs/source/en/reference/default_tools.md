@@ -23,6 +23,9 @@ The built-in tools can be categorized by their primary functions:
   - [`SpeechToTextTool`]
 - **Workflow Control**: Manage and direct the flow of agent operations.
   - [`FinalAnswerTool`]: Conclude agent workflow with final response.
+- **Memory**: Persist facts across runs.
+  - [`RememberTool`]: Save a fact to long-term memory.
+  - [`RecallTool`]: Search long-term memory.
 
 ## ApiWebSearchTool
 
@@ -43,6 +46,14 @@ The built-in tools can be categorized by their primary functions:
 ## PythonInterpreterTool
 
 [[autodoc]] smolagents.default_tools.PythonInterpreterTool
+
+## RecallTool
+
+[[autodoc]] smolagents.default_tools.RecallTool
+
+## RememberTool
+
+[[autodoc]] smolagents.default_tools.RememberTool
 
 ## SpeechToTextTool
 

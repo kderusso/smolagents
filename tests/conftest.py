@@ -2,8 +2,10 @@ from unittest.mock import patch
 
 import pytest
 
+import smolagents.persistent_memory
 from smolagents.agents import MultiStepAgent
 from smolagents.monitoring import LogLevel
+from smolagents.persistent_memory import PersistentMemory
 
 
 # Import fixture modules as plugins
@@ -21,3 +23,10 @@ def patch_multi_step_agent_with_suppressed_logging():
 
         mock_init.side_effect = init_with_suppressed_logging
         yield
+
+
+@pytest.fixture(autouse=True)
+def isolate_persistent_memory(tmp_path):
+    smolagents.persistent_memory._default_store = PersistentMemory(str(tmp_path / "memory.json"))
+    yield
+    smolagents.persistent_memory._default_store = None

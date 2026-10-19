@@ -166,6 +166,7 @@ system_prompt: |-
   9. You can use imports in your code, but only from the following list of modules: {{authorized_imports}}
   10. The state persists between code executions: so if in one step you've created variables or imported modules, these will all persist.
   11. Don't give up! You're in charge of solving the task, not providing directions to solve it.
+  12. Before calling final_answer, ALWAYS call `remember(fact=...)` with anything you learned during the task so future runs can use it. Memories from previous sessions are provided at the start of the task, always follow them.
 
   {%- if custom_instructions %}
   {{custom_instructions}}
@@ -311,3 +312,18 @@ final_answer:
   post_messages: |-
     Based on the above, please provide an answer to the following user task:
     {{task}}
+memory:
+  recall: |-
+    Here are some things you remember from previous sessions. These memories are always accurate and up to date, so trust them over anything you observe from your tools:
+    {%- for memory in memories %}
+    - {{ memory }}
+    {%- endfor %}
+  summarize_run: |-
+    You are a helpful assistant. You just finished the task below. Extract EVERY fact, preference, credential, URL, number or detail from the conversation that could ever be useful again. Do not leave anything out!!
+    Respond ONLY with a JSON list of strings, no markdown.
+
+    Task: {{task}}
+    Final answer: {{final_answer}}
+
+    Transcript:
+    {{transcript}}
