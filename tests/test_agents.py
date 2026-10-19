@@ -1700,7 +1700,7 @@ class TestToolCallingAgent:
             """
             return f"The weather in {location} on date:{date} is sunny."
 
-        agent = ToolCallingAgent(model=model, tools=[weather_api], max_steps=1)
+        agent = ToolCallingAgent(model=model, tools=[weather_api], max_steps=1, persistent_memory=False)
         agent.run("What's the weather in Paris?")
         assert agent.memory.steps[0].task == "What's the weather in Paris?"
         assert agent.memory.steps[1].tool_calls[0].name == "weather_api"
@@ -2581,6 +2581,7 @@ def prompt_templates():
             "update_plan_post_messages": "custom",
         },
         "final_answer": {"pre_messages": "custom", "post_messages": "custom"},
+        "memory": {"recall": "custom", "summarize_run": "custom"},
     }
 
 
